@@ -143,12 +143,16 @@
                     </button>
                 </div>
                 
-                <button onclick="toggleScanner()" id="scan-btn" class="w-full bg-yellow-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-yellow-600 transition shadow-md flex justify-center items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
-                    <span>สแกนคิวอาร์โค้ด</span>
+                <!-- ซ่อน Input ไฟล์ไว้ แล้วกำหนดให้เปิดกล้อง (capture="environment") ทันทีที่คลิก -->
+                <input type="file" id="qr-file-input" accept="image/*" capture="environment" class="hidden" onchange="handleQRImage(event)">
+
+                <button onclick="triggerCamera()" id="scan-btn" class="w-full bg-yellow-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-yellow-600 transition shadow-md flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>ถ่ายรูปคิวอาร์โค้ด</span>
                 </button>
 
-                <div id="reader" class="mt-4 border-2 border-dashed border-blue-200 bg-blue-50 p-2"></div>
+                <!-- ยังต้องมี div นี้ไว้สำหรับให้ library ใช้ประมวลผลรูปภาพอยู่เบื้องหลัง -->
+                <div id="reader" style="display: none;"></div>
             </div>
         </div>
 
@@ -249,8 +253,7 @@
 
         let currentEmpId = '';
         let currentCouponData = null;
-        let html5QrCode = null; // เปลี่ยนชื่อตัวแปร
-        let isScanning = false;
+        let html5QrCode = null; 
 
         // ฟังก์ชันช่วยเรียก API กลาง
         async function callAPI(payload) {
@@ -318,7 +321,6 @@
             const activeNav = document.getElementById('nav-' + tab);
             activeNav.classList.remove('text-gray-400', 'border-transparent');
             activeNav.classList.add('text-blue-800', 'border-blue-800');
-            if(tab !== 'home' && isScanning) toggleScanner();
         }
 
         // ---------- ระบบเข้าสู่ระบบ (เชื่อม API) ----------
@@ -403,79 +405,38 @@
                 document.getElementById('login-section').classList.remove('hidden');
                 switchTab('home');
                 clearCouponDetails();
-                if(isScanning) toggleScanner();
             }, 300);
         }
 
-        // ---------- ระบบค้นหาและสแกนคูปอง (เชื่อม API) ----------
-        async function toggleScanner() {
-            const readerDiv = document.getElementById('reader');
-            const scanBtn = document.getElementById('scan-btn');
+        // ---------- ระบบสแกนคูปองด้วยการถ่ายภาพ ----------
+        function triggerCamera() {
+            // เรียกใช้ input file เพื่อเปิดกล้องถ่ายภาพของมือถือ
+            document.getElementById('qr-file-input').click();
+        }
 
-            if (isScanning) {
-                // กรณีต้องการปิดกล้อง
-                if (html5QrCode) {
-                    try {
-                        await html5QrCode.stop();
-                        html5QrCode.clear();
-                    } catch (err) {
-                        console.error("Stop camera error:", err);
-                    }
-                }
-                readerDiv.style.display = 'none';
-                scanBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg><span>สแกนคิวอาร์โค้ด</span>';
-                scanBtn.className = 'w-full bg-yellow-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-yellow-600 transition shadow-md flex justify-center items-center gap-2';
-                scanBtn.disabled = false;
-                isScanning = false;
-            } else {
-                // กรณีต้องการเปิดกล้อง
-                readerDiv.style.display = 'block';
-                scanBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>กำลังเตรียมกล้อง...</span>';
-                scanBtn.disabled = true;
+        async function handleQRImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-                if (!html5QrCode) {
-                    html5QrCode = new Html5Qrcode("reader");
-                }
+            showLoading('กำลังวิเคราะห์รูปภาพ...');
 
-                try {
-                    // สั่งเปิดกล้องหลัง (environment) ทันที
-                    await html5QrCode.start(
-                        { facingMode: "environment" }, 
-                        { fps: 10, qrbox: { width: 250, height: 250 } },
-                        (decodedText) => {
-                            // เมื่อสแกนติด
-                            document.getElementById('coupon-input').value = decodedText;
-                            toggleScanner(); // ปิดกล้อง
-                            searchCoupon();  // ดำเนินการค้นหา
-                        },
-                        (errorMessage) => {
-                            // ปล่อยผ่าน error เล็กๆ น้อยๆ ระหว่างสแกนที่ไม่เจอ QR
-                        }
-                    );
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
 
-                    // อัปเดตปุ่มเมื่อกล้องเปิดสำเร็จ
-                    scanBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg><span>ยกเลิกการสแกน</span>';
-                    scanBtn.className = 'w-full bg-red-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-red-600 transition shadow-md flex justify-center items-center gap-2 mt-2';
-                    scanBtn.disabled = false;
-                    isScanning = true;
-
-                } catch (err) {
-                    // ดักจับ Error หากเปิดกล้องไม่สำเร็จ
-                    readerDiv.style.display = 'none';
-                    scanBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg><span>สแกนคิวอาร์โค้ด</span>';
-                    scanBtn.className = 'w-full bg-yellow-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-yellow-600 transition shadow-md flex justify-center items-center gap-2';
-                    scanBtn.disabled = false;
-                    isScanning = false;
-                    
-                    let errorMsg = 'เบราว์เซอร์ไม่อนุญาตให้เปิดกล้อง กรุณาตรวจสอบการตั้งค่า (Permissions)';
-                    if (err.toString().includes("NotAllowedError")) {
-                        errorMsg = "คุณได้กดปฏิเสธการเข้าถึงกล้องไปแล้ว กรุณาไปที่การตั้งค่าของเบราว์เซอร์เพื่ออนุญาตการใช้กล้อง";
-                    } else if (err.toString().includes("NotFoundError")) {
-                        errorMsg = "ไม่พบกล้องถ่ายรูปในอุปกรณ์นี้";
-                    }
-
-                    showMsg('เปิดกล้องไม่สำเร็จ', errorMsg + '\n\n' + err, false);
-                }
+            try {
+                // อ่านคิวอาร์โค้ดจากไฟล์รูปภาพ
+                const decodedText = await html5QrCode.scanFile(file, true);
+                hideLoading();
+                
+                document.getElementById('coupon-input').value = decodedText;
+                event.target.value = ''; // ล้างค่า input ให้ถ่ายใหม่ได้
+                
+                searchCoupon(); // ดำเนินการค้นหาต่ออัตโนมัติ
+            } catch (err) {
+                hideLoading();
+                event.target.value = ''; // ล้างค่า input
+                showMsg('อ่านข้อมูลไม่สำเร็จ', 'ไม่พบคิวอาร์โค้ดในรูปภาพนี้ หรือรูปภาพไม่ชัดเจน กรุณาถ่ายให้เห็นคิวอาร์โค้ดชัดๆ แล้วลองใหม่อีกครั้ง', false);
             }
         }
 
